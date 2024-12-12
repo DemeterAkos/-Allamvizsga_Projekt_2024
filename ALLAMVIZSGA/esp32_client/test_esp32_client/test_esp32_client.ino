@@ -63,10 +63,10 @@ void loop() {
   data.y = analogRead(in_Y);
   data.z = analogRead(in_Z);
 
-  // Scale the sensor data from 0-4095 to 0-100
-  int scaledX = map(data.x, 0, 4095, 0, 100);
-  int scaledY = map(data.y, 0, 4095, 0, 100);
-  int scaledZ = map(data.z, 0, 4095, 0, 100);
+  // Scale the sensor data from 0-4095 to 0-20
+  int scaledX = map(data.x, 0, 4095, 0, 50);
+  int scaledY = map(data.y, 0, 4095, 0, 50);
+  int scaledZ = map(data.z, 0, 4095, 0, 50);
 
 
   // If connection is alive send data to host
