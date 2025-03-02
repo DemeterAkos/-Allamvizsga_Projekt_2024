@@ -21,9 +21,23 @@ def connect_to_database():
     return conn
 
 def get_data(query,params=()):
-    conn = connect_to_database()
-    df = pd.read_sql(query, conn, params=params)
-    conn.close()
+    try:
+        conn = connect_to_database()
+
+    except Exception as err:
+        print(f"Database connection failed: {err}")
+        return pd.DataFrame()
+
+    try:
+        df = pd.read_sql(query, conn, params=params)
+
+    except Exception as err:
+        print(f"Query execution failed: {err}")
+        df = pd.DataFrame() #Empty DataFrame, if query fails
+
+    finally:
+        conn.close()
+
     return df
 
 def create_table(df):
@@ -55,14 +69,14 @@ def create_table(df):
 #Functions declaration for buttuns event
 def click_Get_All_Data():
     # Make query select
-    query = "SELECT * FROM sensor_data"
+    query = "SELECT * FROM sensor_data ORDER BY `Date Time` DESC"
     df = get_data(query)
     # Refresh table output
     create_table(df)
 
 def click_Get_Collision():
     # Make query select
-    df = get_data("SELECT * FROM sensor_data WHERE `Robot Collision` = 1")
+    df = get_data("SELECT * FROM sensor_data WHERE `Robot Collision` = 1 ORDER BY `Date Time` DESC")
     # Refresh table output
     create_table(df)
 
@@ -72,7 +86,7 @@ def click_filter_by_direction(event = None):
 
     if direction:
         # Make query select
-        query = "SELECT * FROM sensor_data WHERE `Control direction` = %s"
+        query = "SELECT * FROM sensor_data WHERE `Control direction` = %s ORDER BY `Date Time` DESC"
         df = get_data(query,(direction,))
         # Refresh table output
         create_table(df)
@@ -83,19 +97,22 @@ def click_filter_by_date():
     start_date = cal_start.get_date().strftime("%Y-%m-%d")
     end_date = cal_end.get_date().strftime("%Y-%m-%d")
     # Make query select
-    query = "SELECT * FROM sensor_data WHERE `Date Time` BETWEEN %s AND %s"
+    query = "SELECT * FROM sensor_data WHERE `Date Time` BETWEEN %s AND %s ORDER BY `Date Time` DESC"
     df = get_data(query, (start_date, end_date))
     # Refresh table output
     create_table(df)
 
 def click_filter_today():
-    #Get today date
+    # Get today's date
     today = date.today()
-    #Make query select
-    query = "SELECT * FROM sensor_data WHERE `Date Time` = %s"
-    df = get_data(query,(today,))
-    #Refresh table output
+
+    # Modify query to filter only by the date part
+    query = "SELECT * FROM sensor_data WHERE DATE(`Date Time`) = %s ORDER BY `Date Time` DESC"
+    df = get_data(query, (today,))
+
+    # Refresh table output
     create_table(df)
+
 
 def click_search_between_distance():
     low_distance_value = txt_distance_low.get().strip()
@@ -162,6 +179,7 @@ def click_avg_distance_by_direction():
         print("No data!")
         return
 
+
     # Create a window to display the chart
     chart_window = tk.Toplevel(root)
     chart_window.title("Average obstacle distance by direction Chart")
@@ -178,29 +196,33 @@ def click_avg_distance_by_direction():
     ax.set_title("Average obstacle distance by direction of movement",fontsize=12, fontweight="bold")
     ax.set_xlabel("Control Direction", fontsize=10)
     ax.set_ylabel("Average Obstacle Distance (cm)", fontsize=10)
-    ax.set_xticklabels(df["Control Direction"], rotation=45)
+    ax.set_xticklabels(df["Control Direction"], rotation=15)
 
     # Inserting a chart into the window
     canvas = FigureCanvasTkAgg(fig, master=chart_window)
     canvas.draw()
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+def click_cillision_direction_switch_chart():
+    #Make query select
+    query = "SELECT COUNT(*) AS Total_collision ,`Robot Collision Switch` FROM sensor_data GROUP BY `Robot Collision Switch`"
+    df = get_data(query)
+    create_table(df)
 
-def click_show_collision_by_date():
-    query_last_10 = "SELECT DATE(`Date Time`) AS Collision_Date, COUNT(*) AS Collision_Count FROM sensor_data WHERE `Robot Collision` = 1 GROUP BY Collision_Date ORDER BY Collision_Date ASC LIMIT 10;"
-    query_total = "SELECT DATE(`Date Time`) AS Collision_Date, COUNT(*) AS Collision_Count FROM sensor_data WHERE `Robot Collision` = 1 GROUP BY Collision_Date ORDER BY Collision_Date ASC;"
-    df_last_10 = get_data(query_last_10)
-    df_total = get_data(query_total)
-
-    create_table(df_total)
-
-    if df_last_10.empty:
+    if df.empty:
         print("No data!")
+        return
+
+    df = df[df["Robot Collision Switch"] != ""]
+    df = df[df["Robot Collision Switch"] != "None"]
+
+    if df.empty:
+        print("No valid collision data!")
         return
 
     # Create a window to display the chart
     chart_window = tk.Toplevel(root)
-    chart_window.title("Temporal collision statistics")
+    chart_window.title("Collision Direction Switch Chart")
     chart_window.geometry("1000x600")
     chart_window.iconbitmap("favicon.ico")
 
@@ -209,19 +231,76 @@ def click_show_collision_by_date():
     ax = fig.add_subplot(111)
 
     # Representation of data (Bar Chart)
-    ax.bar(df_last_10["Collision_Date"],df_last_10["Collision_Count"], color="orange", edgecolor="black")
+    ax.bar(df["Robot Collision Switch"], df["Total_collision"], color="green", edgecolor="black")
 
-    ax.set_title("Temporal collision statistics", fontsize=12, fontweight="bold")
-    ax.set_xlabel("Collision Date", fontsize=10)
-    ax.set_ylabel("Collision Count", fontsize=10)
-    ax.set_xticklabels([])
-
-    # Add dynamic labels (date and collision count) above the points
-    for i, (date, count) in enumerate(zip(df_last_10["Collision_Date"], df_last_10["Collision_Count"])):
-        ax.text(date, count, f"{date.strftime('%Y-%m-%d')}\n{count}",
-                ha='center', va='bottom', fontsize=9, color="black")
+    ax.set_title("Collision Direction Switch Chart",fontsize=12, fontweight="bold")
+    ax.set_xlabel("Robot Collision Direction Switch", fontsize=10)
+    ax.set_ylabel("Total collision", fontsize=10)
+    ax.set_xticklabels(df["Robot Collision Switch"], rotation=15)
 
     # Inserting a chart into the window
+    canvas = FigureCanvasTkAgg(fig, master=chart_window)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+def click_show_collision_by_date():
+    # SQL lekérdezés perc alapú csoportosítással
+    query_last_10 = """
+        SELECT DATE_FORMAT(`Date Time`, '%Y-%m-%d %H:%i') AS Collision_Minute, 
+               COUNT(*) AS Collision_Count 
+        FROM sensor_data 
+        WHERE `Robot Collision` = 1 
+        GROUP BY Collision_Minute 
+        ORDER BY Collision_Minute ASC 
+        LIMIT 10;
+    """
+
+    query_total = """
+        SELECT DATE_FORMAT(`Date Time`, '%Y-%m-%d %H:%i') AS Collision_Minute, 
+               COUNT(*) AS Collision_Count 
+        FROM sensor_data 
+        WHERE `Robot Collision` = 1 
+        GROUP BY Collision_Minute 
+        ORDER BY Collision_Minute ASC;
+    """
+
+    # Adatok lekérdezése
+    df_last_10 = get_data(query_last_10)
+    df_total = get_data(query_total)
+
+    # Táblázat frissítése
+    create_table(df_total)
+
+    if df_last_10.empty:
+        print("No data!")
+        return
+
+    # Ablak létrehozása a diagramhoz
+    chart_window = tk.Toplevel(root)
+    chart_window.title("Collision Statistics by Minute")
+    chart_window.geometry("1200x600")
+    chart_window.iconbitmap("favicon.ico")
+
+    # Matplotlib ábra létrehozása
+    fig = Figure(figsize=(10, 5), dpi=100)
+    ax = fig.add_subplot(111)
+
+    # Oszlopdiagram megjelenítése
+    ax.bar(df_last_10["Collision_Minute"], df_last_10["Collision_Count"], color="orange", edgecolor="black")
+
+    ax.set_title("Collision Statistics by Minute", fontsize=12, fontweight="bold")
+    ax.set_xlabel("Time per minutes", fontsize=10)
+    ax.set_ylabel("Collision Count", fontsize=10)
+
+    # Dátumok X-tengely beállítása
+    ax.set_xticks(range(len(df_last_10["Collision_Minute"])))
+    ax.set_xticklabels(df_last_10["Collision_Minute"], rotation=15, ha="right", fontsize=8)
+
+    # Címkék hozzáadása az oszlopok fölé
+    for i, (minute, count) in enumerate(zip(df_last_10["Collision_Minute"], df_last_10["Collision_Count"])):
+        ax.text(i, count, str(count), ha='center', va='bottom', fontsize=9, color="black")
+
+    # Diagram beszúrása az ablakba
     canvas = FigureCanvasTkAgg(fig, master=chart_window)
     canvas.draw()
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
@@ -268,6 +347,9 @@ BTN_Show_AVG_Distance_By_direction.grid(row=1, column=1, padx=3, pady=2, sticky=
 
 BTN_Show_Collision_By_Date = ttk.Button(button_frame, text="Show Collision By Date Chart", command=click_show_collision_by_date)
 BTN_Show_Collision_By_Date.grid(row=1, column=2, padx=3, pady=2, sticky="ew")
+
+BTN_Show_Collision_Direction_Switch_Chart = ttk.Button(button_frame, text="Show Collision By Direction", command=click_cillision_direction_switch_chart)
+BTN_Show_Collision_Direction_Switch_Chart.grid(row=1, column=3,padx=3, pady=2, sticky="ew")
 
 
 #Input Text field for robot movement dirrection filter ex:(FORWARD,BACKWARD,STOP,LEFT,RIGHT)
