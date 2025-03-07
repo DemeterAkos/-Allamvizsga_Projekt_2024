@@ -54,14 +54,22 @@ int distance;
 const int Emergency_Light_and_Horn = 17;
 
 
-// Collision detection
+// Collision detection variables
 bool collisionDetected = false;
+bool collisionDetected_Switch_Front_Left = false;
+bool collisionDetected_Switch_Front_Center = false;
+bool collisionDetected_Switch_Front_Right = false;
+bool collisionDetected_Switch_Back_Left = false;
+bool collisionDetected_Switch_Back_Center = false;
+bool collisionDetected_Switch_Back_Right = false;
+
 String direction;
 int collision_ON = 0;
+String collision_switch = "None";
 
 //upload time to database
 unsigned long lastUploadTime = 0;
-const long uploadInterval = 2000; // 2 sec
+const long uploadInterval = 100; // 2 sec
 
 // Function declarations (prototypes)
 int UltrasonicSensor();
@@ -182,7 +190,7 @@ void loop() {
         }
         // Upload data to server
         if (millis() - lastUploadTime > uploadInterval) {
-          uploadDataToServer(xVal, yVal, distance, direction, collision_ON);
+          uploadDataToServer(xVal, yVal, distance, direction, collision_ON, collision_switch);
           lastUploadTime = millis();
         }
         
@@ -224,19 +232,19 @@ int UltrasonicSensor(){
 void MotorControlUnit(int distance,int xVal, int yVal){
  
   //Motor Drivers Activate
-  if(yVal <= 21 && distance > 8){
+  if(yVal <= 22 && xVal > 22 && xVal < 30 && distance > 8){
     Go_Forward();
     direction = "FORWARD";
   }
-  else if(yVal >= 28){
+  else if(yVal >= 30 && xVal > 22 && xVal < 30){
     Go_Backward();
     direction = "BACKWARD";
   }
-  else if(xVal <= 21){
+  else if(xVal <= 22 && yVal > 22 && yVal < 30){
     Turn_Right();  
     direction = "RIGHT";      
   }
-  else if(xVal >= 30){
+  else if(xVal >= 30 && yVal > 22 && yVal < 30){
     Turn_Left();
     direction = "LEFT";
   }
@@ -300,20 +308,44 @@ void Turn_Right(){
 }
 
 void Collision() {
-  collisionDetected = 
-      digitalRead(Switch_Front_Right) == HIGH || 
-      digitalRead(Switch_Front_Left) == HIGH || 
-      digitalRead(Switch_Front_Center) == HIGH || 
-      digitalRead(Switch_Back_Right) == HIGH || 
-      digitalRead(Switch_Back_Left) == HIGH || 
-      digitalRead(Switch_Back_Center) == HIGH;
+  collisionDetected_Switch_Front_Right = digitalRead(Switch_Front_Right);
+  collisionDetected_Switch_Front_Left = digitalRead(Switch_Front_Left);
+  collisionDetected_Switch_Front_Center = digitalRead(Switch_Front_Center);
+  collisionDetected_Switch_Back_Right = digitalRead(Switch_Back_Right);
+  collisionDetected_Switch_Back_Left = digitalRead(Switch_Back_Left);
+  collisionDetected_Switch_Back_Center = digitalRead(Switch_Back_Center);
+ 
+  if (collisionDetected_Switch_Front_Right || collisionDetected_Switch_Front_Left || collisionDetected_Switch_Front_Center ||
+   collisionDetected_Switch_Back_Right || collisionDetected_Switch_Back_Left || collisionDetected_Switch_Back_Center) {
 
-  if (collisionDetected) {
     // Stop the motors when a collision is detected
     Stop_Moveing();
 
     //Set value to 1 if collision is detected
     collision_ON = 1;
+    collisionDetected = true;
+
+    if (collisionDetected_Switch_Front_Right) {
+      collision_switch = "Front RIGHT Switch";
+    }
+    else if(collisionDetected_Switch_Front_Left){
+      collision_switch = "Front LEFT Switch";
+    }
+    else if(collisionDetected_Switch_Front_Center){
+      collision_switch = "Front CENTER Switch";
+    }
+    else if(collisionDetected_Switch_Back_Right){
+      collision_switch = "Back RIGHT Switch";
+    }
+    else if(collisionDetected_Switch_Back_Left){
+      collision_switch = "Back LEFT Switch";
+    }
+    else if(collisionDetected_Switch_Back_Center){
+      collision_switch = "Back CENTER Switch";
+    }
+    else{
+      collision_switch = "None";
+    }
 
     // Activate the emergency light and horn
     digitalWrite(Emergency_Light_and_Horn, HIGH);
@@ -324,12 +356,14 @@ void Collision() {
     // Turn off the alarm if there is no collision
     digitalWrite(Emergency_Light_and_Horn, LOW);
     collision_ON = 0;
+    collisionDetected = false;
+    collision_switch = "None";
   }
 }
 
-void uploadDataToServer(int x, int y,int distance, String robot_direction, int robot_collision) {
+void uploadDataToServer(int x, int y,int distance, String robot_direction, int robot_collision, String collision_switch) {
   if (WiFi.status() == WL_CONNECTED) {
-    String postData = "xValue=" + String(x) + "&yValue=" + String(y) + "&Obstacle_distance=" + String(distance) + "&Control_direction=" + String(robot_direction) + "&collision=" + String(robot_collision);
+    String postData = "xValue=" + String(x) + "&yValue=" + String(y) + "&Obstacle_distance=" + String(distance) + "&Control_direction=" + String(robot_direction) + "&collision=" + String(robot_collision) + "&collision_switch=" + String(collision_switch);
    
     HTTPClient http;
     http.begin(URL);
@@ -353,5 +387,3 @@ void uploadDataToServer(int x, int y,int distance, String robot_direction, int r
   }
   }
 }
-
-
