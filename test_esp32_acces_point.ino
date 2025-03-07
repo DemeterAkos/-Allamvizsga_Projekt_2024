@@ -53,6 +53,9 @@ int distance;
 //EmergencyLight and horn
 const int Emergency_Light_and_Horn = 17;
 
+//Database server connection switch
+const int DB_Server_connection_Switch = 18;
+
 
 // Collision detection variables
 bool collisionDetected = false;
@@ -108,6 +111,8 @@ void setup() {
 
   //Emergency Light and Horn Pin
   pinMode(Emergency_Light_and_Horn,OUTPUT);
+
+  pinMode(DB_Server_connection_Switch, INPUT);
 
   //Create Access Point 
   WiFi.softAP(ssid, password);
@@ -188,10 +193,15 @@ void loop() {
         }else{
           Stop_Moveing();
         }
-        // Upload data to server
-        if (millis() - lastUploadTime > uploadInterval) {
-          uploadDataToServer(xVal, yVal, distance, direction, collision_ON, collision_switch);
-          lastUploadTime = millis();
+
+        int Db_switch = digitalRead(DB_Server_connection_Switch);
+
+        if(Db_switch == HIGH){
+          // Upload data to server
+          if (millis() - lastUploadTime > uploadInterval) {
+            uploadDataToServer(xVal, yVal, distance, direction, collision_ON, collision_switch);
+           lastUploadTime = millis();
+          }
         }
         
       }
@@ -201,10 +211,7 @@ void loop() {
     Serial.println("Kliens lecsatlakozott.");
   }
   
-  
-  
 }
-
 
 //Functions Inicialization and declaration 
 

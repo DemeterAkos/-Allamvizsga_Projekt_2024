@@ -11,7 +11,7 @@ const int in_X = 34;
 const int in_Y = 35;
 const int in_Z = 32;
 
-const int FILTER_SIZE = 2;  // Mozgó átlag szűrő mérete
+const int FILTER_SIZE = 3;  // Mozgó átlag szűrő mérete
 int x_values[FILTER_SIZE] = {0};
 int y_values[FILTER_SIZE] = {0};
 int z_values[FILTER_SIZE] = {0};
