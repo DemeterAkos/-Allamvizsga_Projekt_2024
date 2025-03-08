@@ -72,7 +72,7 @@ String collision_switch = "None";
 
 //upload time to database
 unsigned long lastUploadTime = 0;
-const long uploadInterval = 100; // 2 sec
+const long uploadInterval = 2000; // 2 sec
 
 // Function declarations (prototypes)
 int UltrasonicSensor();
@@ -90,6 +90,8 @@ void setup() {
   Serial.begin(115200);
 
   WiFi.mode(WIFI_AP_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(true);
 
   //Ultrasonic Sensor Pins 
   pinMode(trigPin,OUTPUT);
@@ -115,7 +117,7 @@ void setup() {
   pinMode(DB_Server_connection_Switch, INPUT);
 
   //Create Access Point 
-  WiFi.softAP(ssid, password);
+  WiFi.softAP(ssid, password, 6, 0, 8);
   
   // Print IP address
   IPAddress IP = WiFi.softAPIP();
@@ -134,9 +136,20 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("\nConnected to Wi-Fi network");
+
+   //**Párhuzamos szálak (taskok) létrehozása**
+  xTaskCreatePinnedToCore(Task_MotorControl, "MotorControlTask", 4096, NULL, 1, NULL, 0);
+  xTaskCreatePinnedToCore(Task_UploadData, "UploadDataTask", 4096, NULL, 1, NULL, 1);
 }
 
 void loop() {
+
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Wi-Fi kapcsolat megszakadt! Újracsatlakozás...");
+    WiFi.disconnect();
+    WiFi.begin(ssidClient, passwordClient);
+  }
+
   // Client joint to server
   WiFiClient client = server.available();
 
@@ -179,29 +192,11 @@ void loop() {
           Serial.println(xVal);
           Serial.print("Y: ");
           Serial.println(yVal);
+
+          vTaskDelay(10);
           
         } else {
           Serial.println("Hibás adatformátum.");
-        }
-
-        //Robot Collision function
-        Collision();
-        
-        //motor drivers
-        if(!collisionDetected){
-          MotorControlUnit(distance,xVal,yVal);
-        }else{
-          Stop_Moveing();
-        }
-
-        int Db_switch = digitalRead(DB_Server_connection_Switch);
-
-        if(Db_switch == HIGH){
-          // Upload data to server
-          if (millis() - lastUploadTime > uploadInterval) {
-            uploadDataToServer(xVal, yVal, distance, direction, collision_ON, collision_switch);
-           lastUploadTime = millis();
-          }
         }
         
       }
@@ -211,6 +206,33 @@ void loop() {
     Serial.println("Kliens lecsatlakozott.");
   }
   
+}
+
+//Motor Control Thread
+void Task_MotorControl(void *pvParameters) {
+  while (1) {
+    //Robot Collision function
+    Collision();
+    if (!collisionDetected) {
+      MotorControlUnit(distance, xVal, yVal);
+    } else {
+      Stop_Moveing();
+    }
+    vTaskDelay(1);
+  }
+}
+
+//Database data upload Thread
+
+void Task_UploadData(void *pvParameters) {
+  while (1) {
+    int Db_switch = digitalRead(DB_Server_connection_Switch);
+    if (Db_switch == HIGH && (millis() - lastUploadTime > uploadInterval)) {
+      uploadDataToServer(xVal, yVal, distance, direction, collision_ON, collision_switch);
+      lastUploadTime = millis();
+    }
+    delay(500); 
+  }
 }
 
 //Functions Inicialization and declaration 
@@ -239,7 +261,7 @@ int UltrasonicSensor(){
 void MotorControlUnit(int distance,int xVal, int yVal){
  
   //Motor Drivers Activate
-  if(yVal <= 22 && xVal > 22 && xVal < 30 && distance > 8){
+  if(yVal <= 22 && xVal > 22 && xVal < 30 && distance > 40){
     Go_Forward();
     direction = "FORWARD";
   }
