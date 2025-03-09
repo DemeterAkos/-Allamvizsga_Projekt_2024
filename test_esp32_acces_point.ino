@@ -74,6 +74,14 @@ String collision_switch = "None";
 unsigned long lastUploadTime = 0;
 const long uploadInterval = 2000; // 2 sec
 
+//timeout for sensor data
+unsigned long lastSensorDataTime = 0;
+const long timeoutInterval = 4000;
+//Last Values from Client sensor
+int lastXVal = 0;
+int lastYVal = 0;
+int lastZVal = 0;
+
 // Function declarations (prototypes)
 int UltrasonicSensor();
 void MotorControlUnit(int distance, int xVal, int yVal);
@@ -187,6 +195,13 @@ void loop() {
           String zString = data.substring(secondComma + 1);
           zVal = zString.toInt();
 
+          if (xVal != lastXVal || yVal != lastYVal || zVal != lastZVal) {
+            lastSensorDataTime = millis();  
+            lastXVal = xVal;
+            lastYVal = yVal;
+            lastZVal = zVal;
+          }
+
           // print data to serial port
           Serial.print("X: ");
           Serial.println(xVal);
@@ -205,6 +220,7 @@ void loop() {
    
     Serial.println("Kliens lecsatlakozott.");
   }
+
   
 }
 
@@ -216,6 +232,10 @@ void Task_MotorControl(void *pvParameters) {
     if (!collisionDetected) {
       MotorControlUnit(distance, xVal, yVal);
     } else {
+      Stop_Moveing();
+    }
+    if (millis() - lastSensorDataTime > timeoutInterval) {
+      Serial.println("Timeout From Data sensor");
       Stop_Moveing();
     }
     vTaskDelay(1);
@@ -261,19 +281,19 @@ int UltrasonicSensor(){
 void MotorControlUnit(int distance,int xVal, int yVal){
  
   //Motor Drivers Activate
-  if(yVal <= 22 && xVal > 22 && xVal < 30 && distance > 40){
+  if(yVal <= 20 && xVal > 20 && xVal < 26 && distance > 45){
     Go_Forward();
     direction = "FORWARD";
   }
-  else if(yVal >= 30 && xVal > 22 && xVal < 30){
+  else if(yVal >= 26 && xVal > 20 && xVal < 26){
     Go_Backward();
     direction = "BACKWARD";
   }
-  else if(xVal <= 22 && yVal > 22 && yVal < 30){
+  else if(xVal <= 20 && yVal > 20 && yVal < 26){
     Turn_Right();  
     direction = "RIGHT";      
   }
-  else if(xVal >= 30 && yVal > 22 && yVal < 30){
+  else if(xVal >= 26 && yVal > 20 && yVal < 26){
     Turn_Left();
     direction = "LEFT";
   }
