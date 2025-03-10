@@ -36,7 +36,7 @@ def get_data(query,params=()):
 
     try:
         df = pd.read_sql(query, conn, params=params)
-        update_status(f"📊 Query executed: {query}", "blue")
+        update_status(f"📊 Query executed", "blue")
     except Exception as err:
         print(f"Query execution failed: {err}")
         messagebox.showerror("Error", f"Query execution failed: {str(err)}")
