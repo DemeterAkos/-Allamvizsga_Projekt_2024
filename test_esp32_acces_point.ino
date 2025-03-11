@@ -30,9 +30,9 @@ const int DriverB_PortA1B = 12;
 
 //Microswitch pins declaration
 //Front switches
-const int Switch_Front_Right = 2;
-const int Switch_Front_Center = 4;
-const int Switch_Front_Left = 16;
+const int Switch_Front_Right = 32;
+const int Switch_Front_Center = 34;
+const int Switch_Front_Left = 35;
 
 //Back switches 
 const int Switch_Back_Right = 21;
@@ -51,7 +51,7 @@ int distance;
 
 
 //EmergencyLight and horn
-const int Emergency_Light_and_Horn = 17;
+const int Emergency_Light_and_Horn = 19;
 
 //Database server connection switch
 const int DB_Server_connection_Switch = 18;
@@ -229,11 +229,9 @@ void Task_MotorControl(void *pvParameters) {
   while (1) {
     //Robot Collision function
     Collision();
-    if (!collisionDetected) {
-      MotorControlUnit(distance, xVal, yVal);
-    } else {
-      Stop_Moveing();
-    }
+    
+    MotorControlUnit(distance, xVal, yVal);
+  
     if (millis() - lastSensorDataTime > timeoutInterval) {
       Serial.println("Timeout From Data sensor");
       Stop_Moveing();
@@ -281,7 +279,7 @@ int UltrasonicSensor(){
 void MotorControlUnit(int distance,int xVal, int yVal){
  
   //Motor Drivers Activate
-  if(yVal <= 20 && xVal > 20 && xVal < 26 && distance > 45){
+  if(yVal <= 20 && xVal > 20 && xVal < 26 && distance > 30){
     Go_Forward();
     direction = "FORWARD";
   }
@@ -289,11 +287,11 @@ void MotorControlUnit(int distance,int xVal, int yVal){
     Go_Backward();
     direction = "BACKWARD";
   }
-  else if(xVal <= 20 && yVal > 20 && yVal < 26){
+  else if(xVal <= 20 && yVal > 20 && yVal < 26 && distance > 15){
     Turn_Right();  
     direction = "RIGHT";      
   }
-  else if(xVal >= 26 && yVal > 20 && yVal < 26){
+  else if(xVal >= 26 && yVal > 20 && yVal < 26 && distance > 15){
     Turn_Left();
     direction = "LEFT";
   }
@@ -368,7 +366,7 @@ void Collision() {
    collisionDetected_Switch_Back_Right || collisionDetected_Switch_Back_Left || collisionDetected_Switch_Back_Center) {
 
     // Stop the motors when a collision is detected
-    Stop_Moveing();
+    //Stop_Moveing();
 
     //Set value to 1 if collision is detected
     collision_ON = 1;
