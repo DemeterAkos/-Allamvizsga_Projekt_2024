@@ -9,7 +9,7 @@ import tkinter as tk
 from app import (connect_to_database, get_data, table_frame, create_table, status_bar, update_status,click_Get_All_Data,
                 click_Get_Collision, click_filter_by_date, click_filter_today, cal_start, cal_end, txt_Direction,
                  click_filter_by_direction, get_data, create_table, tmp_query_nr, txt_distance_low, txt_distance_high,
-                 click_search_between_distance, click_show_collision_distance_chart)
+                 click_search_between_distance, click_show_collision_distance_chart,click_avg_distance_by_direction)
 
 
 def test_connect_to_database():
@@ -247,6 +247,10 @@ def test_click_show_collision_distance_chart():
             mock_toplevel.return_value = MagicMock(spec=tk.Toplevel)  # Mock Toplevel as a real Toplevel instance
             mock_toplevel()._w = MagicMock()  # Create a _w mock to simulate widget behavior
 
+            # Explicitly mock the title and geometry methods of Toplevel
+            mock_toplevel().title = MagicMock()
+            mock_toplevel().geometry = MagicMock()
+
             # Call the function under test
             click_show_collision_distance_chart()
 
@@ -263,3 +267,39 @@ def test_click_show_collision_distance_chart():
 
             # Ensure that FigureCanvasTkAgg was used to display the chart
             mock_canvas.assert_called_once()
+
+
+
+
+@pytest.fixture
+def mock_tk_root():
+    #Tkinter root for testing charts and graphics
+    root = tk.Tk()
+    yield root
+    root.destroy()
+
+
+@patch("app.get_data")
+@patch("app.create_table")
+
+def test_click_avg_distance_by_direction(mock_create_table, mock_get_data, mock_tk_root):
+    # Fill test table with test data
+    test_data = pd.DataFrame({
+        "Control Direction": ["Left", "Right", "Forward"],
+        "Avg_Distance": [30.5, 45.2, 25.1]
+    })
+
+    # Mock get data from database
+    mock_get_data.return_value = test_data
+
+    click_avg_distance_by_direction()
+
+    # Verify that get_data received the correct SQL query
+    mock_get_data.assert_called_once_with(
+        "SELECT `Control Direction`, AVG(`Obstacle Distance`) AS Avg_Distance FROM sensor_data GROUP BY `Control Direction` ORDER BY Avg_Distance ASC;"
+    )
+
+    # Check that create_table received the correct DataFrame
+    mock_create_table.assert_called_once_with(test_data)
+
+

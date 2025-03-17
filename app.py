@@ -50,25 +50,37 @@ def get_data(query,params=()):
 
 
 def create_table(df):
-    #Delete existing table, if any
+    # Delete existing table, if any
     for widget in table_frame.winfo_children():
         widget.destroy()
 
-    #Create a table
+    # Create a table
     tree = ttk.Treeview(table_frame, columns=list(df.columns), show="headings")
 
-    #Setting columns
+    # Create a style for column headers
+    style = ttk.Style()
+    style.configure("Treeview.Heading", background="#72fdf7",foreground="black", font=("Arial", 10, "bold"), borderwidth=2,relief="solid")
+
+    # Setting columns
     for col in df.columns:
         tree.heading(col, text=col)
-        tree.column(col, width=120,stretch=tk.YES)
+        tree.column(col, width=120, stretch=tk.YES)
 
-    #Add data to the table
+    # Add data to the table and alternate row background color (striping)
     for index, row in df.iterrows():
-        tree.insert("", tk.END, values=list(row))
+        if index % 2 == 0:
+            tree.insert("", tk.END, values=list(row), tags=("evenrow",))  # Even rows
+        else:
+            tree.insert("", tk.END, values=list(row), tags=("oddrow",))  # Odd rows
+
+    # Configure row styles (striping)
+    tree.tag_configure("evenrow", background="#72fdf7")  # Even rows background color
+    tree.tag_configure("oddrow", background="#ffffff")  # Odd rows background color
 
     tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
 
-    # Add a horizontal scrollbar
+    # Add a vertical scrollbar
+
     scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
     scrollbar.pack(fill=tk.Y, side=tk.LEFT)
 
@@ -491,52 +503,78 @@ def click_export_table_to_csv():
 #Create Main application window
 root = tk.Tk()
 root.title("Robot Sensor Data")
-root.geometry("1380x600")
-
+root.geometry("1300x600")
+root.configure(bg="#bcfbf8")
 # Add an icon to the window
 root.iconbitmap("roboticon.ico")
 
+# Create Style Sheet
+style = ttk.Style()
+
+# Set background for ttk frames using a style
+style.configure("TFrame", background="#bcfbf8") #c5f9fd
+style.configure("TButton", background="#b0d3d3")
+
 # Window Main Frame declaration
-main_frame = ttk.Frame(root)
+main_frame = ttk.Frame(root, style="TFrame")
 main_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
-button_frame = ttk.Frame(main_frame)
+
+
+
+#Button Frame declaration
+button_frame = ttk.Frame(main_frame, style="TFrame")
 button_frame.grid(row=0, column=0, columnspan=3, padx=3, pady=2, sticky="nsew")
 
+
+
+
+#Configure style design for buttons
+style.configure("ButtonStyle.TButton",
+                font=("Arial",8,"bold"),
+                foreground="black",
+                background="#3394ce",
+                padding=5)
+
+# Create hover for buttons
+style.map("ButtonStyle.TButton",
+          background=[("active", "darkblue"), ("pressed", "navy")],
+          foreground=[("active", "black"), ("pressed", "yellow")])
+
 # Create buttons
-BTN_GetAll_Data = ttk.Button(button_frame, text="  Get All Latest Data   ", command=click_Get_All_Data)
+BTN_GetAll_Data = ttk.Button(button_frame, text="  Get All Latest Data   ", command=click_Get_All_Data, style="ButtonStyle.TButton")
 BTN_GetAll_Data.grid(row=0, column=0, padx=3, pady=2, sticky="ew")
 
-BTN_GetCollision_Data = ttk.Button(button_frame, text="Search by Collision Data", command=click_Get_Collision)
+BTN_GetCollision_Data = ttk.Button(button_frame, text="Search by Collision Data", command=click_Get_Collision, style="ButtonStyle.TButton")
 BTN_GetCollision_Data.grid(row=0, column=1, padx=3, pady=2, sticky="ew")
 
-BTN_Filter_by_direction = ttk.Button(button_frame, text="Filter datas by Direction", command=click_filter_by_direction)
+BTN_Filter_by_direction = ttk.Button(button_frame, text="Filter datas by Direction", command=click_filter_by_direction, style="ButtonStyle.TButton")
 BTN_Filter_by_direction.grid(row=0, column=2, padx=3, pady=2, sticky="ew")
 
-BTN_filter_date = ttk.Button(button_frame, text="Filter by Date", command=click_filter_by_date)
-BTN_filter_date.grid(row=0, column=8, padx=3, pady=2, sticky="ew")
+BTN_filter_date = ttk.Button(button_frame, text="Filter by Date", command=click_filter_by_date, style="ButtonStyle.TButton")
+BTN_filter_date.grid(row=0, column=6, padx=3, pady=2, sticky="ew")
 
-BTN_Filter_Today = ttk.Button(button_frame,text="Today",command=click_filter_today)
-BTN_Filter_Today.grid(row=0,column=9, padx=3, pady=2, sticky="ew")
+BTN_Filter_Today = ttk.Button(button_frame,text="Today",command=click_filter_today, style="ButtonStyle.TButton")
+BTN_Filter_Today.grid(row=1,column=6, padx=3, pady=2, sticky="ew")
 
-BTN_search_between_distance = ttk.Button(button_frame, text="Search between obstacle distance", command=click_search_between_distance)
-BTN_search_between_distance.grid(row=1, column=8, padx=3, pady=2, sticky="ew")
+BTN_search_between_distance = ttk.Button(button_frame, text="Search between obstacle distance", command=click_search_between_distance, style="ButtonStyle.TButton")
+BTN_search_between_distance.grid(row=2, column=6, padx=3, pady=2, sticky="ew")
 
-BTN_Show_Collision_Distance_Chart = ttk.Button(button_frame, text="Show Collision Chart", command=click_show_collision_distance_chart)
+BTN_Show_Collision_Distance_Chart = ttk.Button(button_frame, text="Show Collision Chart", command=click_show_collision_distance_chart, style="ButtonStyle.TButton")
 BTN_Show_Collision_Distance_Chart.grid(row=1, column=0, padx=3, pady=2, sticky="ew")
 
-BTN_Show_AVG_Distance_By_direction = ttk.Button(button_frame, text="Show AVG Distance Chart", command=click_avg_distance_by_direction)
+BTN_Show_AVG_Distance_By_direction = ttk.Button(button_frame, text="Show AVG Distance Chart", command=click_avg_distance_by_direction, style="ButtonStyle.TButton")
 BTN_Show_AVG_Distance_By_direction.grid(row=1, column=1, padx=3, pady=2, sticky="ew")
 
-BTN_Show_Collision_By_Date = ttk.Button(button_frame, text="Show Collision By Date Chart", command=click_show_collision_by_date)
+BTN_Show_Collision_By_Date = ttk.Button(button_frame, text="Show Collision By Date Chart", command=click_show_collision_by_date, style="ButtonStyle.TButton")
 BTN_Show_Collision_By_Date.grid(row=1, column=2, padx=3, pady=2, sticky="ew")
 
-BTN_Show_Collision_Direction_Switch_Chart = ttk.Button(button_frame, text="Show Collision By Direction", command=click_cillision_direction_switch_chart)
+BTN_Show_Collision_Direction_Switch_Chart = ttk.Button(button_frame, text="Show Collision By Direction", command=click_cillision_direction_switch_chart, style="ButtonStyle.TButton")
 BTN_Show_Collision_Direction_Switch_Chart.grid(row=1, column=3,padx=3, pady=2, sticky="ew")
 
-BTN_Show_movement_distribution_pie_chart = ttk.Button(button_frame, text="Show movement distribution", command=click_movement_distribution_pie_chart)
+BTN_Show_movement_distribution_pie_chart = ttk.Button(button_frame, text="Show movement distribution", command=click_movement_distribution_pie_chart, style="ButtonStyle.TButton")
 BTN_Show_movement_distribution_pie_chart.grid(row=2, column=0,padx=3, pady=2, sticky="ew")
 
-BTN_Export_Data_CSV = ttk.Button(button_frame, text="Export to CSV", command=click_export_table_to_csv)
+BTN_Export_Data_CSV = ttk.Button(button_frame, text="Export to CSV", command=click_export_table_to_csv, style="ButtonStyle.TButton")
 BTN_Export_Data_CSV.grid(row=2, column=2, padx=3, pady=2, sticky="ew")
 
 
@@ -552,7 +590,8 @@ def on_focus_out(event, entry, default_text):
         entry.insert(0, default_text)
         entry.config(fg="gray")
 
-txt_Direction = tk.Entry(button_frame, width=20)
+
+txt_Direction = tk.Entry(button_frame,font=("Arial", 12), bd=1, width=20, foreground="gray", background="#ebf5fa")
 txt_Direction.insert(0,"Enter direction here")
 txt_Direction.config(foreground="gray")
 txt_Direction.grid(row=0, column=3, padx=5, pady=2, sticky="ew")
@@ -564,41 +603,41 @@ txt_Direction.bind("<Return>", click_filter_by_direction)
 #Filter between two object distance value ex:(minVal = 100, maxVal = 200) -> Object distance datas between 100 and 200 cm.
 #low value, minimal value
 
-ttk.Label(button_frame, text="Low value:").grid(row=1, column=4, padx=3, pady=2)
+ttk.Label(button_frame, text="Low value:", background="#bcfbf8", font=("Arial", 10, "bold")).grid(row=2, column=4, padx=3, pady=2)
 
-txt_distance_low = tk.Entry(button_frame,width=25)
+txt_distance_low = tk.Entry(button_frame,font=("Arial", 12), bd=1, width=20, foreground="gray", background="#ebf5fa")
 txt_distance_low.insert(0,"Enter low distance value")
 txt_distance_low.config(foreground="gray")
-txt_distance_low.grid(row=1,column=5,padx=3, pady=2, sticky="ew")
+txt_distance_low.grid(row=2,column=5,padx=3, pady=2, sticky="ew")
 
 txt_distance_low.bind("<FocusIn>", lambda event, e=txt_distance_low, t="Enter low distance value": on_entry_click(event, e, t))
 txt_distance_low.bind("<FocusOut>", lambda event, e=txt_distance_low, t="Enter low distance value": on_focus_out(event, e, t))
 
 
 #high value, maximum value
-ttk.Label(button_frame, text="High value:").grid(row=1, column=6, padx=3, pady=2)
+ttk.Label(button_frame, text="High value:", background="#bcfbf8", font=("Arial", 10, "bold")).grid(row=3, column=4, padx=3, pady=2)
 
-txt_distance_high = tk.Entry(button_frame,width=25)
+txt_distance_high = tk.Entry(button_frame,font=("Arial", 12), bd=1, width=20, foreground="gray", background="#ebf5fa")
 txt_distance_high.insert(0,"Enter high distance value")
 txt_distance_high.config(foreground="gray")
-txt_distance_high.grid(row=1,column=7,padx=3, pady=2, sticky="ew")
+txt_distance_high.grid(row=3,column=5,padx=3, pady=2, sticky="ew")
 
 txt_distance_high.bind("<FocusIn>", lambda event, e=txt_distance_high, t="Enter high distance value": on_entry_click(event, e, t))
 txt_distance_high.bind("<FocusOut>", lambda event, e=txt_distance_high, t="Enter high distance value": on_focus_out(event, e, t))
 
 #Filter datas by Date bettwen the Start and End date
 #Filter by Date Strat date
-ttk.Label(button_frame, text="Start Date:").grid(row=0, column=4, padx=3, pady=2)
-cal_start = DateEntry(button_frame, width=12, background="darkblue", foreground="white", date_pattern="yyyy-mm-dd")
+ttk.Label(button_frame, text="Start Date:",background="#bcfbf8", font=("Arial", 10, "bold")).grid(row=0, column=4, padx=3, pady=2)
+cal_start = DateEntry(button_frame,font=("Arial", 12), width=12, background="darkblue", foreground="white", date_pattern="yyyy-mm-dd")
 cal_start.grid(row=0, column=5, padx=3, pady=2, sticky="ew")
 
 #Filter by Date End date
-ttk.Label(button_frame, text="End Date:").grid(row=0, column=6, padx=3, pady=2)
-cal_end = DateEntry(button_frame, width=12, background="darkblue", foreground="white", date_pattern="yyyy-mm-dd")
-cal_end.grid(row=0, column=7, padx=3, pady=2, sticky="ew")
+ttk.Label(button_frame, text="End Date:", background="#bcfbf8", font=("Arial", 10, "bold")).grid(row=1, column=4, padx=3, pady=2)
+cal_end = DateEntry(button_frame,font=("Arial", 12), width=12, background="darkblue", foreground="white", date_pattern="yyyy-mm-dd")
+cal_end.grid(row=1, column=5, padx=3, pady=2, sticky="ew")
 
 #Status Bar, status label
-status_bar = ttk.Label(main_frame, text="🔄 Connecting to database...", anchor="w", font=("Arial", 10))
+status_bar = ttk.Label(main_frame, text="🔄 Connecting to database...", anchor="w", background="#bcfbf8", font=("Arial", 12, "bold"))
 status_bar.grid(row=99, column=0, sticky="ew", padx=5, pady=5)
 
 
