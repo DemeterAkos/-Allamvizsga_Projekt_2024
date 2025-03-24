@@ -3,11 +3,35 @@ import pandas as pd
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from tkcalendar import DateEntry
-from datetime import date
+from datetime import date, datetime
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
 import numpy as np
+import logging
+import os
+
+
+# Log directory
+log_dir = "Logs"
+os.makedirs(log_dir, exist_ok=True)
+
+# Create filename with actual date and time
+log_file_path = os.path.join(log_dir, f"logfile_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log")
+
+
+#Log file format configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(log_file_path),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger("App")
+
 
 #Query select temporal global variable number For Export Selected Data query to CSV file
 tmp_query_nr = 0
@@ -26,9 +50,11 @@ def get_data(query,params=()):
 
     try:
         conn = connect_to_database()
+        logger.info("Successfully connected to the database.")
         update_status("✅ Connected to database", "green")
 
     except Exception as err:
+        logger.error(f"Database connection failed: {err}")
         print(f"Database connection failed: {err}")
         update_status("❌ Database connection failed!", "red")
         messagebox.showerror("Error", f"Connection failed: {str(err)}")
@@ -36,9 +62,11 @@ def get_data(query,params=()):
 
     try:
         df = pd.read_sql(query, conn, params=params)
+        logger.info(f"Query executed successfully. Rows fetched: {len(df)}")
         update_status(f"📊 Query executed", "blue")
     except Exception as err:
         print(f"Query execution failed: {err}")
+        logger.warning("No connection available. Returning empty DataFrame.")
         messagebox.showerror("Error", f"Query execution failed: {str(err)}")
         update_status("⚠️Query execution failed!", "orange")
         df = pd.DataFrame() #Empty DataFrame, if query fails
@@ -50,6 +78,7 @@ def get_data(query,params=()):
 
 
 def create_table(df):
+    logger.info("Creating table for displaying data.")
     # Delete existing table, if any
     for widget in table_frame.winfo_children():
         widget.destroy()
@@ -83,12 +112,14 @@ def create_table(df):
 
     scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
     scrollbar.pack(fill=tk.Y, side=tk.LEFT)
-
     tree.configure(yscrollcommand=scrollbar.set)
+
+    logger.info(f"Table created successfully with {len(df)} rows.")
 
 #Update Status_Bar txt
 def update_status(text, color):
     status_bar.config(text=text, foreground=color)
+    logger.info(f"Status updated: {text}")
 
 
 #Get data at the touch of a button
@@ -97,20 +128,23 @@ def click_Get_All_Data():
     global tmp_query_nr
     # Make query select
     query = "SELECT * FROM sensor_data ORDER BY `Date Time` DESC"
+    logger.info(f"Executing query: {query}")
     df = get_data(query)
     # Refresh table output
     create_table(df)
     tmp_query_nr = 1
-
+    logger.info("Data retrieved and table refreshed for 'Get All Data' query.")
 
 def click_Get_Collision():
     global tmp_query_nr
     # Make query select
-    df = get_data("SELECT * FROM sensor_data WHERE `Robot Collision` = 1 ORDER BY `Date Time` DESC")
+    query = "SELECT * FROM sensor_data WHERE `Robot Collision` = 1 ORDER BY `Date Time` DESC"
+    df = get_data(query)
+    logger.info(f"Executing query: {query}")
     # Refresh table output
     create_table(df)
-
     tmp_query_nr = 2
+    logger.info("Data retrieved and table refreshed for 'Get Collision' query.")
 
 def click_filter_by_direction(event = None):
     global tmp_query_nr
@@ -120,11 +154,14 @@ def click_filter_by_direction(event = None):
     if direction:
         # Make query select
         query = "SELECT * FROM sensor_data WHERE `Control direction` = %s ORDER BY `Date Time` DESC"
+        logger.info(f"Filtering by direction: {direction}. Executing query: {query}")
         df = get_data(query,(direction,))
         # Refresh table output
         create_table(df)
         tmp_query_nr = 3
+        logger.info("Data retrieved and table refreshed for 'Filter by Direction' query.")
     else:
+        logger.warning("Direction value not provided!")
         print("Please enter a direction!")  # Error message
 
 def click_filter_by_date():
@@ -133,10 +170,12 @@ def click_filter_by_date():
     end_date = cal_end.get_date().strftime("%Y-%m-%d")
     # Make query select
     query = "SELECT * FROM sensor_data WHERE `Date Time` BETWEEN %s AND %s ORDER BY `Date Time` DESC"
+    logger.info(f"Filtering by date range: {start_date} to {end_date}. Executing query: {query}")
     df = get_data(query, (start_date, end_date))
     # Refresh table output
     create_table(df)
     tmp_query_nr = 4
+    logger.info("Data retrieved and table refreshed for 'Filter by Date' query.")
 
 def click_filter_today():
     global tmp_query_nr
@@ -145,11 +184,13 @@ def click_filter_today():
 
     # Modify query to filter only by the date part
     query = "SELECT * FROM sensor_data WHERE DATE(`Date Time`) = %s ORDER BY `Date Time` DESC"
+    logger.info(f"Filtering for today's date: {today}. Executing query: {query}")
     df = get_data(query, (today,))
 
     # Refresh table output
     create_table(df)
     tmp_query_nr = 5
+    logger.info("Data retrieved and table refreshed for 'Filter Today' query.")
 
 
 def click_search_between_distance():
@@ -160,11 +201,15 @@ def click_search_between_distance():
     if low_distance_value and high_distance_value:  #If has value in Input field
         # Make query select
         query = "SELECT * FROM sensor_data WHERE `Obstacle Distance`BETWEEN %s AND %s ORDER BY `Obstacle Distance` DESC"
+        logger.info(
+            f"Searching for obstacle distance between {low_distance_value} and {high_distance_value}. Executing query: {query}")
         df = get_data(query, (low_distance_value,high_distance_value))
         # Refresh table output
         create_table(df)
         tmp_query_nr = 6
+        logger.info("Data retrieved and table refreshed for 'Search Between Distance' query.")
     else:
+        logger.warning("Low and High distance values not provided!")
         print("Please enter low and high distance value!")
 
 
@@ -173,13 +218,16 @@ def click_show_collision_distance_chart():
     # Make query select
     query = "SELECT `Obstacle Distance` FROM sensor_data WHERE `Robot Collision` = 1"
     query_count = "SELECT Count(*) AS 'Total Collision' FROM sensor_data WHERE `Robot Collision` = 1"
+    logger.info(f"Executing query: {query}")
     df = get_data(query)
     df1 = get_data(query_count)
     # Refresh table output
     create_table(df1)
     tmp_query_nr = 7
+    logger.info("Data retrieved for collision count and table refreshed.")
 
     if df.empty:
+        logger.warning("No collision data found!")
         print("No collision data!")
         return
 
@@ -188,6 +236,7 @@ def click_show_collision_distance_chart():
     chart_window.title("Collision Distance Chart")
     chart_window.geometry("1000x400")
     chart_window.iconbitmap("favicon.ico")
+    logger.info("Opening chart window for 'Collision Distance Chart'.")
 
     # Create Matplotlib Figure
     fig = Figure(figsize=(6, 4), dpi=100)
@@ -210,16 +259,19 @@ def click_show_collision_distance_chart():
     canvas = FigureCanvasTkAgg(fig, master=chart_window)
     canvas.draw()
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+    logger.info("Collision distance chart displayed.")
 
 def click_avg_distance_by_direction():
     global tmp_query_nr
     #Make query select
     query = "SELECT `Control Direction`, AVG(`Obstacle Distance`) AS Avg_Distance FROM sensor_data GROUP BY `Control Direction` ORDER BY Avg_Distance ASC;"
+    logger.info(f"Executing query: {query}")
     df = get_data(query)
     create_table(df)
     tmp_query_nr = 8
 
     if df.empty:
+        logger.warning("No data found for average obstacle distance by direction!")
         print("No data!")
         return
 
@@ -229,6 +281,8 @@ def click_avg_distance_by_direction():
     chart_window.title("Average obstacle distance by direction Chart")
     chart_window.geometry("1000x600")
     chart_window.iconbitmap("favicon.ico")
+
+    logger.info("Chart window for 'Average obstacle distance by direction' opened.")
 
     # Create Matplotlib Figure
     fig = Figure(figsize=(8, 5), dpi=100)
@@ -247,15 +301,19 @@ def click_avg_distance_by_direction():
     canvas.draw()
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+    logger.info("Average distance by direction chart displayed.")
+
 def click_cillision_direction_switch_chart():
     global tmp_query_nr
     #Make query select
     query = "SELECT COUNT(*) AS Total_collision ,`Robot Collision Switch` FROM sensor_data GROUP BY `Robot Collision Switch`"
+    logger.info(f"Executing query: {query}")
     df = get_data(query)
     create_table(df)
     tmp_query_nr = 9
 
     if df.empty:
+        logger.warning("No collision data found!")
         print("No data!")
         return
 
@@ -263,6 +321,7 @@ def click_cillision_direction_switch_chart():
     df = df[df["Robot Collision Switch"] != "None"]
 
     if df.empty:
+        logger.warning("No valid collision data after filtering!")
         print("No valid collision data!")
         return
 
@@ -271,6 +330,8 @@ def click_cillision_direction_switch_chart():
     chart_window.title("Collision Direction Switch Chart")
     chart_window.geometry("1000x600")
     chart_window.iconbitmap("favicon.ico")
+
+    logger.info("Chart window for 'Collision Direction Switch' opened.")
 
     # Create Matplotlib Figure
     fig = Figure(figsize=(8, 5), dpi=100)
@@ -288,6 +349,8 @@ def click_cillision_direction_switch_chart():
     canvas = FigureCanvasTkAgg(fig, master=chart_window)
     canvas.draw()
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+    logger.info("Collision direction switch chart displayed.")
 
 
 def click_show_collision_by_date():
@@ -312,6 +375,8 @@ def click_show_collision_by_date():
         ORDER BY Collision_Minute ASC;
     """
 
+    logger.info(f"Executing query for last 10 collisions: {query_last_10}")
+
     df_last_10 = get_data(query_last_10)
     df_total = get_data(query_total)
 
@@ -327,6 +392,8 @@ def click_show_collision_by_date():
     chart_window.title("Collision Statistics by Minute")
     chart_window.geometry("1200x600")
     chart_window.iconbitmap("favicon.ico")
+
+    logger.info("Chart window for 'Collision Statistics by Minute' opened.")
 
     # Create Matplotlib Figure
     fig = Figure(figsize=(10, 5), dpi=100)
@@ -352,6 +419,7 @@ def click_show_collision_by_date():
     canvas.draw()
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+    logger.info("Collision by date chart displayed.")
 
 def click_movement_distribution_pie_chart():
     global tmp_query_nr
@@ -363,6 +431,8 @@ def click_movement_distribution_pie_chart():
         GROUP BY `Control Direction`
         ORDER BY Percentage DESC;
     """
+
+    logger.info(f"Executing query: {query}")
     df = get_data(query)
 
     create_table(df)
@@ -378,6 +448,8 @@ def click_movement_distribution_pie_chart():
     chart_window.title("Movement Direction Distribution")
     chart_window.geometry("800x600")
     chart_window.iconbitmap("favicon.ico")
+
+    logger.info("Chart window for 'Movement Direction Distribution' opened.")
 
 
     fig = Figure(figsize=(6, 6), dpi=100)
@@ -395,10 +467,13 @@ def click_movement_distribution_pie_chart():
     canvas.draw()
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+    logger.info("Movement direction distribution pie chart displayed.")
+
 
 def click_export_table_to_csv():
 
     #CSV file data select field
+    logger.info("Preparing data export for CSV file.")
     #Get all latest data query for csv
     if tmp_query_nr == 1:
         query = "SELECT * FROM sensor_data ORDER BY `Date Time` DESC"
@@ -477,6 +552,7 @@ def click_export_table_to_csv():
         df = get_data(query)
 
     if df.empty:
+        logger.warning("No data to export!")
         messagebox.showerror("Error", "No data to export!")
         return
 
@@ -489,13 +565,16 @@ def click_export_table_to_csv():
 
     # If the user did not choose a filename, we exit
     if not file_path:
+        logger.info("File save dialog cancelled.")
         return
 
     try:
         # Save CSV file
         df.to_csv(file_path, index=False, encoding="utf-8")
+        logger.info(f"Data exported successfully to: {file_path}")
         messagebox.showinfo("Success", f"Data exported successfully to:\n{file_path}")
     except Exception as e:
+        logger.error(f"Failed to export data! Error: {str(e)}")
         messagebox.showerror("Error", f"Failed to export data!\n{str(e)}")
 
 ###################################################################################################################
