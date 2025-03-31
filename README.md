@@ -1,25 +1,14 @@
 # -Államvizsga_Projekt_2024
 
-Cím 
+Cím: Robot vezérlés kézmozdulattal 
+Szak/ Szakok: Számítástechnika 
+Vezető tanár:dr. Bakó László 
 
-Robot vezérlés kézmozdulattal 
-
-Szak/ Szakok 
-
-Számítástechnika 
-
-Vezető tanár 
-
-dr. Bakó László 
-
-Leírás 
-
- 
+Leírás:
 
 Egy kézzel irányított robot megvalósítása, Arduinos/ESP32 es rendszert alkalmazva. 
 
 Kivitelezés részletei:
-
 Mit kell megvalósítani a dolgozatban?:
 
 -Adó-Vevő Arduinos/ESP32-es áramkörök megvalósítása valamint a kommunikáció létrehozása a két Arduino/ESP32 WI-FI kommunikáció vagy rádiófrekvenciás kommunikációt használva.
@@ -32,7 +21,7 @@ Mit kell megvalósítani a dolgozatban?:
 
 -Megakadályozni, hogy a robot nekimenjen valamilyen akadálynak ezt ultrahangos szenzorok segítségével megvalósítani. 
 
--A roboton legyenek olyan szenyorok amelyek érzékelik az akadályba valo ütközést, ez esetben adjon vésszjelzést, valamint azonnal álitsa le a motorok vezérlését, abban ay irányban ahol elakadt.
+-A roboton legyenek olyan szenzorok amelyek érzékelik az akadályba valo ütközést, ez esetben adjon vésszjelzést, valamint azonnal álitsa le a motorok vezérlését, abban az irányban ahol elakadt.
 (Például ha mondjuk elöl akat elörefele menet ment neki egy akadálynak akkor ha a kliens küld vezérlöjelet hogy menjen elöre akkor egy vibrációs motor segitségével ami a kesztyüre van szerelve küld jelzést a kliens fele hogy elörefele menet már nem tud menni mivel valamely akadályba ütközött.)
 
 -Mozgásvezérlés A robot ismételten érzékeli a környezetében levő szenzorokat figyeli az adó(kliens) modul utasításait és az adatokat továbbitani a vevő oldalra. 
@@ -57,11 +46,8 @@ Szükséges ismeretek a (tananyagon kívül)
 
  
 
-TDK téma 
+TDK téma?  Nem TDK téma. 
 
-Nem TDK téma. 
-
-Más elvárások (konzultálás, terem stb.) 
-
+Más elvárások (konzultálás, terem stb.):
 Jártas programozásban, protokollok értelmezésében, modulok közötti drótnélküli kommunikáció felépítésében. Konzultáció a 316-os teremben, megegyezés szerint. 
 
