@@ -78,9 +78,9 @@ void loop() {
   int filteredZ = moving_average(z_values);
 
   // Skálázás (0-4095 -> 0-50)
-  int scaledX = map(filteredX, 0, 4095, 0, 50);
-  int scaledY = map(filteredY, 0, 4095, 0, 50);
-  int scaledZ = map(filteredZ, 0, 4095, 0, 50);
+  int scaledX = map(filteredX, 0, 4095, 0, 100);
+  int scaledY = map(filteredY, 0, 4095, 0, 100);
+  int scaledZ = map(filteredZ, 0, 4095, 0, 100);
 
   // Küldés Wi-Fi-n keresztül
   if (client.connected()) {

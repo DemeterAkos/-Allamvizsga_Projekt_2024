@@ -1,7 +1,8 @@
+#include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-String URL = "http://192.168.100.26/robot_data/test_data.php";
+String URL = "http://192.168.1.100/robot_data/test_data.php";
 
 
 // Wi-Fi AP settings
@@ -9,8 +10,8 @@ const char *ssid = "ESP32-AccesPoint";
 const char *password = "12345678";
 
 //// Wi-Fi client settings (for external network connection)
-const char *ssidClient = "DIGI-YpsU";  
-const char *passwordClient = "kTS4N8Jv"; 
+const char *ssidClient = "TP-Link_178C";  
+const char *passwordClient = "71008738"; 
 
 //Create Server port 
 WiFiServer server(80);
@@ -86,10 +87,10 @@ int lastZVal = 0;
 int UltrasonicSensor();
 void MotorControlUnit(int distance, int xVal, int yVal);
 void Stop_Moveing();
-void Go_Forward();
-void Go_Backward();
-void Turn_Left();
-void Turn_Right();
+void Go_Forward(int pwm_speed);
+void Go_Backward(int pwm_speed);
+void Turn_Left(int pwm_speed);
+void Turn_Right(int pwm_speed);
 void Collision();
 void uploadDataToServer(int x, int y, int distance, String direction, int collision);
 
@@ -101,6 +102,8 @@ void setup() {
   WiFi.setAutoReconnect(true);
   WiFi.persistent(true);
 
+  
+
   //Ultrasonic Sensor Pins 
   pinMode(trigPin,OUTPUT);
   pinMode(echoPin,INPUT);
@@ -110,6 +113,13 @@ void setup() {
   pinMode(DriverA_PortA1B,OUTPUT);
   pinMode(DriverB_PortA1A,OUTPUT);
   pinMode(DriverB_PortA1B,OUTPUT);
+
+  // PWM setup for motor drivers
+  ledcAttach(DriverA_PortA1A, 5000, 8); // Channel 0, 5kHz, 8-bit resolution
+  ledcAttach(DriverA_PortA1B, 5000, 8); // Channel 1
+  ledcAttach(DriverB_PortA1A, 5000, 8); // Channel 2
+  ledcAttach(DriverB_PortA1B, 5000, 8); // Channel 3
+
 
   //Switches initialization
   pinMode(Switch_Front_Right,INPUT);
@@ -233,7 +243,7 @@ void Task_MotorControl(void *pvParameters) {
     MotorControlUnit(distance, xVal, yVal);
   
     if (millis() - lastSensorDataTime > timeoutInterval) {
-      Serial.println("Timeout From Data sensor");
+      //Serial.println("Timeout From Data sensor");
       Stop_Moveing();
     }
     vTaskDelay(1);
@@ -279,20 +289,36 @@ int UltrasonicSensor(){
 void MotorControlUnit(int distance,int xVal, int yVal){
  
   //Motor Drivers Activate
-  if(yVal <= 20 && xVal > 20 && xVal < 26 && distance > 30){
-    Go_Forward();
+  if(yVal < 44 && xVal > 44 && xVal < 50 && distance > 30){
+
+    int pwm_speed = map(yVal, 36, 44, 255, 0);  
+    pwm_speed = constrain(pwm_speed, 0, 255);
+
+    Go_Forward(pwm_speed);
     direction = "FORWARD";
   }
-  else if(yVal >= 26 && xVal > 20 && xVal < 26){
-    Go_Backward();
+  else if(yVal > 50 && xVal > 44 && xVal < 50){
+
+    int pwm_speed = map(yVal, 50, 54, 0, 255);  
+    pwm_speed = constrain(pwm_speed, 0, 255);
+
+    Go_Backward(pwm_speed);
     direction = "BACKWARD";
   }
-  else if(xVal <= 20 && yVal > 20 && yVal < 26 && distance > 15){
-    Turn_Right();  
+  else if(xVal < 44 && yVal > 44 && yVal < 50){
+
+    int pwm_speed = map(xVal, 36, 44, 255, 240);  
+    pwm_speed = constrain(pwm_speed, 240, 255);
+
+    Turn_Right(pwm_speed);  
     direction = "RIGHT";      
   }
-  else if(xVal >= 26 && yVal > 20 && yVal < 26 && distance > 15){
-    Turn_Left();
+  else if(xVal > 50 && yVal > 44 && yVal < 50){
+
+    int pwm_speed = map(xVal, 50, 56, 240, 255);  
+    pwm_speed = constrain(pwm_speed, 240, 255);
+
+    Turn_Left(pwm_speed);
     direction = "LEFT";
   }
   else{
@@ -304,54 +330,75 @@ void MotorControlUnit(int distance,int xVal, int yVal){
 
 
 void Stop_Moveing(){
-  //Driver A control
-  digitalWrite(DriverA_PortA1A, LOW);
-  digitalWrite(DriverA_PortA1B, LOW);
+  // //Driver A control
+  // digitalWrite(DriverA_PortA1A, LOW);
+  // digitalWrite(DriverA_PortA1B, LOW);
 
-  //Driver B control
-  digitalWrite(DriverB_PortA1A, LOW);
-  digitalWrite(DriverB_PortA1B, LOW);
+  // //Driver B control
+  // digitalWrite(DriverB_PortA1A, LOW);
+  // digitalWrite(DriverB_PortA1B, LOW);
+
+  ledcWrite(DriverA_PortA1A, 0);
+  ledcWrite(DriverA_PortA1B, 0);
+  ledcWrite(DriverB_PortA1A, 0);
+  ledcWrite(DriverB_PortA1B, 0);
   
 }
 
-void Go_Forward(){
-  //Driver A control
-  digitalWrite(DriverA_PortA1A, HIGH);
-  digitalWrite(DriverA_PortA1B, LOW);
+void Go_Forward(int pwm_speed){
+  // //Driver A control
+  // digitalWrite(DriverA_PortA1A, HIGH);
+  // digitalWrite(DriverA_PortA1B, LOW);
 
-  //Driver B control
-  digitalWrite(DriverB_PortA1A, HIGH);
-  digitalWrite(DriverB_PortA1B, LOW);
+  // //Driver B control
+  // digitalWrite(DriverB_PortA1A, HIGH);
+  // digitalWrite(DriverB_PortA1B, LOW);
+  ledcWrite(DriverA_PortA1A, pwm_speed);
+  ledcWrite(DriverA_PortA1B, 0);
+  ledcWrite(DriverB_PortA1A, pwm_speed);
+  ledcWrite(DriverB_PortA1B, 0);
 }
 
-void Go_Backward(){
-   //Driver A control
-  digitalWrite(DriverA_PortA1A, LOW);
-  digitalWrite(DriverA_PortA1B, HIGH);
+void Go_Backward(int pwm_speed){
+  //  //Driver A control
+  // digitalWrite(DriverA_PortA1A, LOW);
+  // digitalWrite(DriverA_PortA1B, HIGH);
 
-  //Driver B control
-  digitalWrite(DriverB_PortA1A, LOW);
-  digitalWrite(DriverB_PortA1B, HIGH);
+  // //Driver B control
+  // digitalWrite(DriverB_PortA1A, LOW);
+  // digitalWrite(DriverB_PortA1B, HIGH);
+  ledcWrite(DriverA_PortA1A, 0);
+  ledcWrite(DriverA_PortA1B, pwm_speed);
+  ledcWrite(DriverB_PortA1A, 0);
+  ledcWrite(DriverB_PortA1B, pwm_speed);
 }
 
-void Turn_Left(){
-   //Driver A control
-  digitalWrite(DriverA_PortA1A, HIGH);
-  digitalWrite(DriverA_PortA1B, LOW);
+void Turn_Left(int pwm_speed){
+  //  //Driver A control
+  // digitalWrite(DriverA_PortA1A, HIGH);
+  // digitalWrite(DriverA_PortA1B, LOW);
 
-  //Driver B control
-  digitalWrite(DriverB_PortA1A, LOW);
-  digitalWrite(DriverB_PortA1B, LOW);
+  // //Driver B control
+  // digitalWrite(DriverB_PortA1A, LOW);
+  // digitalWrite(DriverB_PortA1B, LOW);
+  ledcWrite(DriverA_PortA1A, pwm_speed);
+  ledcWrite(DriverA_PortA1B, 0);
+  ledcWrite(DriverB_PortA1A, 0);
+  ledcWrite(DriverB_PortA1B, 0);
 }
 
-void Turn_Right(){
-   //Driver A control
-  digitalWrite(DriverA_PortA1A, LOW);
-  digitalWrite(DriverA_PortA1B, LOW);
+void Turn_Right(int pwm_speed){
+  //  //Driver A control
+  // digitalWrite(DriverA_PortA1A, LOW);
+  // digitalWrite(DriverA_PortA1B, LOW);
 
-  //Driver B control
-  digitalWrite(DriverB_PortA1A, HIGH);
-  digitalWrite(DriverB_PortA1B, LOW);
+  // //Driver B control
+  // digitalWrite(DriverB_PortA1A, HIGH);
+  // digitalWrite(DriverB_PortA1B, LOW);
+  ledcWrite(DriverA_PortA1A, 0);
+  ledcWrite(DriverA_PortA1B, 0);
+  ledcWrite(DriverB_PortA1A, pwm_speed);
+  ledcWrite(DriverB_PortA1B, 0);
 }
 
 void Collision() {
