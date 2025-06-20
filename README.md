@@ -1,4 +1,4 @@
-# -Államvizsga_Projekt_2024
+# -Államvizsga_Projekt_2025
 
 Cím: Robot vezérlés kézmozdulattal 
 Szak/ Szakok: Számítástechnika 
