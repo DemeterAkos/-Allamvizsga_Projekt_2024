@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-String URL = "http://192.168.1.100/robot_data/test_data.php";
+String URL = "http://192.168.8.100/robot_data/test_data.php";
 
 
 // Wi-Fi AP settings
@@ -10,8 +10,8 @@ const char *ssid = "ESP32-AccesPoint";
 const char *password = "12345678";
 
 //// Wi-Fi client settings (for external network connection)
-const char *ssidClient = "TP-Link_178C";  
-const char *passwordClient = "71008738"; 
+const char *ssidClient = "HUAWEI-Levi";  
+const char *passwordClient = "zizifido"; 
 
 //Create Server port 
 WiFiServer server(80);
@@ -255,6 +255,7 @@ void Task_MotorControl(void *pvParameters) {
 void Task_UploadData(void *pvParameters) {
   while (1) {
     int Db_switch = digitalRead(DB_Server_connection_Switch);
+    Serial.println(Db_switch);
     if (Db_switch == HIGH && (millis() - lastUploadTime > uploadInterval)) {
       uploadDataToServer(xVal, yVal, distance, direction, collision_ON, collision_switch);
       lastUploadTime = millis();
@@ -307,16 +308,19 @@ void MotorControlUnit(int distance,int xVal, int yVal){
   }
   else if(xVal < 44 && yVal > 44 && yVal < 50){
 
-    int pwm_speed = map(xVal, 36, 44, 255, 240);  
-    pwm_speed = constrain(pwm_speed, 240, 255);
+    //int pwm_speed = 240;
+
+    int pwm_speed = map(xVal, 36, 44, 240, 0);  
+    pwm_speed = constrain(pwm_speed, 0, 240);
 
     Turn_Right(pwm_speed);  
     direction = "RIGHT";      
   }
-  else if(xVal > 50 && yVal > 44 && yVal < 50){
+  else if(xVal > 49 && yVal > 44 && yVal < 50){
 
-    int pwm_speed = map(xVal, 50, 56, 240, 255);  
-    pwm_speed = constrain(pwm_speed, 240, 255);
+    //int pwm_speed = 240;
+    int pwm_speed = map(xVal, 49, 56, 0, 240);  
+    pwm_speed = constrain(pwm_speed, 0, 240);
 
     Turn_Left(pwm_speed);
     direction = "LEFT";
